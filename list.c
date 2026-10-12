@@ -301,7 +301,9 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
             else sprintf(path, "%s/%s", dirname, (*dir)->name);
 
             count_dir_contents(path, *dir, hasfulltree, &sub_dirs, &sub_files);
-            print_named_folder_collapse(lev, (*dir)->name, sub_dirs, sub_files, *(dir+1) != NULL);
+            /* Not last if more entries follow or an anonymous summary is still pending */
+            print_named_folder_collapse(lev, (*dir)->name, sub_dirs, sub_files,
+                                        *(dir+1) != NULL || collapsed_dirs > 0 || collapsed_files > 0);
             run_printed++;
           }
         } else {
@@ -324,8 +326,11 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
     /* Print anonymous collapse summary for accumulated entries (limit exceeded or folders/all modes) */
     if (collapsed_dirs > 0 || collapsed_files > 0) {
-      print_focus_collapse(lev, collapsed_dirs, collapsed_files, *(dir+1) != NULL);
+      /* The current entry follows the summary, so the summary is never last */
+      print_focus_collapse(lev, collapsed_dirs, collapsed_files, 1);
       collapsed_dirs = collapsed_files = 0;
+      /* Restore the connector state for the current entry */
+      dirs[lev] = *(dir+1) ? 1 : 2;
     }
     /* Reset run counters when hitting a focus entry */
     run_total = run_printed = 0;
